@@ -64,16 +64,32 @@
   <footer>© 2026 WorkSpace Finder. All rights reserved.</footer>
 
   <script>
+    let allWorkspaces = [];
+
+    // Ensure user is logged in
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user) {
       window.location.href = 'login.html';
     }
 
-    let allWorkspaces = [];
-
     async function loadWorkspaces() {
       try {
-        const response = await fetch('https://group4sodvwebdevfinal.onrender.com/workspaces');
+        // Pass the authorization header token to prevent 401 Unauthorized blockages
+        const response = await fetch('https://group4sodvwebdevfinal.onrender.com/workspaces', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'authorization': localStorage.getItem('token') // Attaches the JWT token
+          }
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Server error:', errorData.message);
+          document.getElementById('workspaces-list').innerHTML = `<p class="no-results" style="color: red;">Error: ${errorData.message}</p>`;
+          return;
+        }
+
         allWorkspaces = await response.json();
         displayWorkspaces(allWorkspaces);
       } catch (err) {
@@ -88,7 +104,9 @@
       const filterSmoking = document.getElementById('filterSmoking').value;
 
       const filtered = allWorkspaces.filter(w => {
-        const matchSearch = !search || w.type.toLowerCase().includes(search) || w.availability.toLowerCase().includes(search);
+        const matchSearch = !search || 
+          (w.type && w.type.toLowerCase().includes(search)) || 
+          (w.availability && w.availability.toLowerCase().includes(search));
         const matchType = !filterType || w.type === filterType;
         const matchTerm = !filterTerm || w.term === filterTerm;
         const matchSmoking = !filterSmoking || w.smoking === filterSmoking;
@@ -104,8 +122,10 @@
         list.innerHTML = '<p class="no-results">No workspaces found.</p>';
         return;
       }
+      
+      // Updated data references from w.id to w._id to match MongoDB Atlas formats
       list.innerHTML = workspaces.map(w => `
-        <div class="workspace-card">
+        <div class="workspace-card" id="workspace-${w._id}">
           <div>
             <h3>${w.type}</h3>
             <p>${w.seats} seats · Smoking: ${w.smoking} · ${w.availability}</p>
@@ -118,10 +138,13 @@
 
     function logout() {
       localStorage.removeItem('user');
+      localStorage.removeItem('token');
       window.location.href = 'login.html';
     }
 
+    // Initial pull from live DB on load
     loadWorkspaces();
   </script>
+
 </body>
 </html>
