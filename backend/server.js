@@ -145,36 +145,36 @@ app.get('/properties/:ownerId', authenticateToken, async (req, res) => {
   }
 });
 
-// ── EDIT PROPERTY ─────────────────────────────────────────────────────────────
-// app.put('/properties/:id', authenticateToken, async (req, res) => {
-//   try {
-//     const db = readDB();
-//     const idx = db.properties.findIndex(p => p._id === req.params.id);
-//     if (idx === -1) return res.status(404).json({ message: 'Property not found' });
-//     db.properties[idx] = { ...db.properties[idx], ...req.body };
-//     writeDB(db);
-//     res.json({ message: 'Property updated successfully', property: db.properties[idx] });
-//   } catch (err) {
-//     res.status(500).json({ message: 'Server error', error: err.message });
-//   }
-// });
-
-//rip another await
-const property = Property.findByIdAndUpdate(
-  req.params.id,
-  req.body,
-  { new: true }
-);
-
-if (!property)
-  return res.status(404).json({
-    message: 'Property not found'
-  });
-
-res.json({
-  message: 'Property updated successfully',
-  property
+//── EDIT PROPERTY ─────────────────────────────────────────────────────────────
+app.put('/properties/:id', authenticateToken, async (req, res) => {
+  try {
+    const db = readDB();
+    const idx = db.properties.findIndex(p => p._id === req.params.id);
+    if (idx === -1) return res.status(404).json({ message: 'Property not found' });
+    db.properties[idx] = { ...db.properties[idx], ...req.body };
+    writeDB(db);
+    res.json({ message: 'Property updated successfully', property: db.properties[idx] });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
 });
+
+// //rip another await
+// const property = Property.findByIdAndUpdate(
+//   req.params.id,
+//   req.body,
+//   { new: true }
+// );
+
+// if (!property)
+//   return res.status(404).json({
+//     message: 'Property not found'
+//   });
+
+// res.json({
+//   message: 'Property updated successfully',
+//   property
+// });
 
 // ── DELETE PROPERTY ───────────────────────────────────────────────────────────
 // app.delete('/properties/:id', authenticateToken, async (req, res) => {
