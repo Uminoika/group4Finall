@@ -73,7 +73,7 @@
 
     async function loadWorkspaces() {
       try {
-        const response = await fetch('https://group4sodvwebdevfinal.onrender.com/workspaces');
+        const response = await fetch('https://sodv-web-dev-project-group4.onrender.com/workspaces');
         allWorkspaces = await response.json();
         displayWorkspaces(allWorkspaces);
       } catch (err) {
