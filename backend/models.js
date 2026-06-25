@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-// User Model
+// User Model :D
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   phone: { type: String, required: true },
