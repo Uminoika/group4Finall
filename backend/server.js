@@ -2,36 +2,22 @@ const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const fs = require('fs');
-const path = require('path');
+const mongoose = require('mongoose'); // 1. Added Mongoose
 require('dotenv').config();
+
+// 2. Import your Mongoose models
+const { User, Property, Workspace } = require('./models');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static('frontend'));
 
-// ── JSON "database" helpers ──────────────────────────────────────────────────
-const DB_FILE = path.join(__dirname, 'db.json');
-
-function readDB() {
-  if (!fs.existsSync(DB_FILE)) {
-    const empty = { users: [], properties: [], workspaces: [] };
-    fs.writeFileSync(DB_FILE, JSON.stringify(empty, null, 2));
-    return empty;
-  }
-  return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-}
-
-function writeDB(data) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-}
-
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2);
-}
-
-console.log('Using local JSON database (db.json)');
+// 3. Connect to MongoDB Atlas via Environment Variable
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/workspaceFinder';
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('Successfully connected to MongoDB Atlas!'))
+  .catch(err => console.error('MongoDB connection error:', err));
 
 // ── JWT middleware ────────────────────────────────────────────────────────────
 function authenticateToken(req, res, next) {
@@ -46,21 +32,26 @@ function authenticateToken(req, res, next) {
 
 // ── Test route ────────────────────────────────────────────────────────────────
 app.get('/api', (req, res) => {
-  res.send('WorkSpace Finder Server is running!');
+  res.send('WorkSpace Finder Server is running on MongoDB!');
 });
 
 // ── REGISTER ──────────────────────────────────────────────────────────────────
 app.post('/register', async (req, res) => {
   try {
     const { name, phone, email, password, role } = req.body;
-    const db = readDB();
-    if (db.users.find(u => u.email === email)) {
+    
+    // Check MongoDB for existing user
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
       return res.status(400).json({ message: 'Email already registered' });
     }
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = { _id: generateId(), name, phone, email, password: hashedPassword, role };
-    db.users.push(newUser);
-    writeDB(db);
+    
+    // Create and save via Mongoose
+    const newUser = new User({ name, phone, email, password: hashedPassword, role });
+    await newUser.save();
+
     res.status(201).json({ message: 'User registered successfully', user: { id: newUser._id, name, email, role } });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -71,11 +62,14 @@ app.post('/register', async (req, res) => {
 app.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const db = readDB();
-    const user = db.users.find(u => u.email === email);
+    
+    // Find user in MongoDB
+    const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ message: 'Invalid email or password' });
+    
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) return res.status(401).json({ message: 'Invalid email or password' });
+    
     const token = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET || 'fallback_secret',
@@ -91,10 +85,10 @@ app.post('/login', async (req, res) => {
 app.post('/properties', authenticateToken, async (req, res) => {
   try {
     const { address, neighborhood, sqft, garage, transport } = req.body;
-    const db = readDB();
-    const newProperty = { _id: generateId(), ownerId: req.user.id, address, neighborhood, sqft, garage, transport };
-    db.properties.push(newProperty);
-    writeDB(db);
+    
+    const newProperty = new Property({ ownerId: req.user.id, address, neighborhood, sqft, garage, transport });
+    await newProperty.save();
+
     res.status(201).json({ message: 'Property added successfully', property: newProperty });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -104,8 +98,7 @@ app.post('/properties', authenticateToken, async (req, res) => {
 // ── GET PROPERTIES by owner ───────────────────────────────────────────────────
 app.get('/properties/:ownerId', authenticateToken, async (req, res) => {
   try {
-    const db = readDB();
-    const properties = db.properties.filter(p => p.ownerId === req.params.ownerId);
+    const properties = await Property.find({ ownerId: req.params.ownerId });
     res.json(properties);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -115,12 +108,9 @@ app.get('/properties/:ownerId', authenticateToken, async (req, res) => {
 // ── EDIT PROPERTY ─────────────────────────────────────────────────────────────
 app.put('/properties/:id', authenticateToken, async (req, res) => {
   try {
-    const db = readDB();
-    const idx = db.properties.findIndex(p => p._id === req.params.id);
-    if (idx === -1) return res.status(404).json({ message: 'Property not found' });
-    db.properties[idx] = { ...db.properties[idx], ...req.body };
-    writeDB(db);
-    res.json({ message: 'Property updated successfully', property: db.properties[idx] });
+    const updatedProperty = await Property.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updatedProperty) return res.status(404).json({ message: 'Property not found' });
+    res.json({ message: 'Property updated successfully', property: updatedProperty });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
@@ -129,11 +119,8 @@ app.put('/properties/:id', authenticateToken, async (req, res) => {
 // ── DELETE PROPERTY ───────────────────────────────────────────────────────────
 app.delete('/properties/:id', authenticateToken, async (req, res) => {
   try {
-    const db = readDB();
-    const idx = db.properties.findIndex(p => p._id === req.params.id);
-    if (idx === -1) return res.status(404).json({ message: 'Property not found' });
-    db.properties.splice(idx, 1);
-    writeDB(db);
+    const deleted = await Property.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Property not found' });
     res.json({ message: 'Property deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -144,53 +131,49 @@ app.delete('/properties/:id', authenticateToken, async (req, res) => {
 app.post('/workspaces', authenticateToken, async (req, res) => {
   try {
     const { propertyId, type, seats, smoking, availability, term, price } = req.body;
-    const db = readDB();
-    const newWorkspace = { _id: generateId(), propertyId, type, seats, smoking, availability, term, price };
-    db.workspaces.push(newWorkspace);
-    writeDB(db);
+    
+    const newWorkspace = new Workspace({ propertyId, type, seats, smoking, availability, term, price });
+    await newWorkspace.save();
+
     res.status(201).json({ message: 'Workspace added successfully', workspace: newWorkspace });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
-// ── GET ALL WORKSPACES ────────────────────────────────────────────────────────
+// ── GET ALL WORKSPACES (With Filters) ─────────────────────────────────────────
 app.get('/workspaces', async (req, res) => {
   try {
-    const db = readDB();
-	// console.log(req.query);
-	const { neighborhood, term, price, seats, smoking } = req.query;
-	let results = db.workspaces;
+    const { neighborhood, term, price, seats, smoking } = req.query;
+    let query = {};
 
-	if(neighborhood !== undefined) {
-		db.properties.forEach(property => {
-			results = results.filter(value => {
-				if(value.propertyId !== property._id) return true;
+    // Filter by fields natively on Workspace
+    if (term) query.term = term;
+    if (price) query.price = Number.parseFloat(price);
+    if (seats) query.seats = Number.parseInt(seats);
+    if (smoking) query.smoking = smoking;
 
-				return property.neighborhood === neighborhood;
-			});
-		});
-	}
+    let workspaces = await Workspace.find(query);
 
-	if(term !== undefined) results = results.filter(value => value.term === term);
-	if(price !== undefined && Number.parseFloat(price) !== NaN) results = results.filter(value => value.price === Number.parseFloat(price));
-	if(seats !== undefined && Number.parseInt(seats) !== NaN) results = results.filter(value => value.seats === Number.parseInt(seats));
-	if(smoking !== undefined) results = results.filter(value => value.smoking === smoking);
+    // Cross-reference filter for properties neighborhood if requested
+    if (neighborhood) {
+      const validProperties = await Property.find({ neighborhood });
+      const validPropertyIds = validProperties.map(p => p._id.toString());
+      workspaces = workspaces.filter(w => validPropertyIds.includes(w.propertyId.toString()));
+    }
 
-    res.json(results);
+    res.json(workspaces);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
+// ── GET SINGLE WORKSPACE ──────────────────────────────────────────────────────
 app.get('/workspaces/:id', async (req, res) => {
   try {
-    const db = readDB();
-	
-	const result = db.workspaces.filter(workspace => workspace._id === req.params.id);
-	if(result.length !== 1) return res.status(404).json({ message: "Workspace not found" });
-	return res.status(200).json(result[0]);
-
+    const workspace = await Workspace.findById(req.params.id);
+    if (!workspace) return res.status(404).json({ message: "Workspace not found" });
+    return res.status(200).json(workspace);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
@@ -199,12 +182,9 @@ app.get('/workspaces/:id', async (req, res) => {
 // ── EDIT WORKSPACE ────────────────────────────────────────────────────────────
 app.put('/workspaces/:id', authenticateToken, async (req, res) => {
   try {
-    const db = readDB();
-    const idx = db.workspaces.findIndex(w => w._id === req.params.id);
-    if (idx === -1) return res.status(404).json({ message: 'Workspace not found' });
-    db.workspaces[idx] = { ...db.workspaces[idx], ...req.body };
-    writeDB(db);
-    res.json({ message: 'Workspace updated successfully', workspace: db.workspaces[idx] });
+    const updatedWorkspace = await Workspace.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!updatedWorkspace) return res.status(404).json({ message: 'Workspace not found' });
+    res.json({ message: 'Workspace updated successfully', workspace: updatedWorkspace });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
@@ -213,11 +193,8 @@ app.put('/workspaces/:id', authenticateToken, async (req, res) => {
 // ── DELETE WORKSPACE ──────────────────────────────────────────────────────────
 app.delete('/workspaces/:id', authenticateToken, async (req, res) => {
   try {
-    const db = readDB();
-    const idx = db.workspaces.findIndex(w => w._id === req.params.id);
-    if (idx === -1) return res.status(404).json({ message: 'Workspace not found' });
-    db.workspaces.splice(idx, 1);
-    writeDB(db);
+    const deleted = await Workspace.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Workspace not found' });
     res.json({ message: 'Workspace deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
