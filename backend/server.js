@@ -116,7 +116,7 @@ app.post('/properties', authenticateToken, async (req, res) => {
     // const newProperty = { _id: generateId(), ownerId: req.user.id, address, neighborhood, sqft, garage, transport };
     // db.properties.push(newProperty);
     // writeDB(db);
-    const newProperty = await Property.create({
+    const newProperty = Property.create({
       ownerId: req.user.id,
       address,
       neighborhood,
