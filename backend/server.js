@@ -330,7 +330,7 @@ if (!workspace) return res.status(404).json({ message: "Workspace not found" });
 //   }
 // });
 const workspaceAgain =
-  await Workspace.findByIdAndDelete(
+ Workspace.findByIdAndDelete(
     req.params.id
   );
 
