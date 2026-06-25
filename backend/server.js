@@ -300,7 +300,7 @@ if (!workspace) return res.status(404).json({ message: "Workspace not found" });
 // });
 
     const workspace =
-      await Workspace.findByIdAndUpdate(
+       Workspace.findByIdAndUpdate(
         req.params.id,
         req.body,
         { new: true }
