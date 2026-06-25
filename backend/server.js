@@ -329,12 +329,12 @@ if (!workspace) return res.status(404).json({ message: "Workspace not found" });
 //     res.status(500).json({ message: 'Server error', error: err.message });
 //   }
 // });
-const workspace =
+const workspaceAgain =
   await Workspace.findByIdAndDelete(
     req.params.id
   );
 
-if (!workspace)
+if (!workspaceAgain)
   return res.status(404).json({
     message: 'Workspace not found'
   });
