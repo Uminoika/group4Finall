@@ -190,9 +190,9 @@ res.json({
 //   }
 // });
 
-const property = await Property.findByIdAndDelete(req.params.id);
+const propertyVariable = await Property.findByIdAndDelete(req.params.id);
 
-if (!property)
+if (!propertyVariable)
   return res.status(404).json({
     message: 'Property not found'
   });
