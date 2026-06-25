@@ -286,35 +286,35 @@ if (!workspace) return res.status(404).json({ message: "Workspace not found" });
 });
 
 // ── EDIT WORKSPACE ────────────────────────────────────────────────────────────
-// app.put('/workspaces/:id', authenticateToken, async (req, res) => {
-//   try {
-//     const db = readDB();
-//     const idx = db.workspaces.findIndex(w => w._id === req.params.id);
-//     if (idx === -1) return res.status(404).json({ message: 'Workspace not found' });
-//     db.workspaces[idx] = { ...db.workspaces[idx], ...req.body };
-//     writeDB(db);
-//     res.json({ message: 'Workspace updated successfully', workspace: db.workspaces[idx] });
-//   } catch (err) {
-//     res.status(500).json({ message: 'Server error', error: err.message });
-//   }
-// });
+app.put('/workspaces/:id', authenticateToken, async (req, res) => {
+  try {
+    const db = readDB();
+    const idx = db.workspaces.findIndex(w => w._id === req.params.id);
+    if (idx === -1) return res.status(404).json({ message: 'Workspace not found' });
+    db.workspaces[idx] = { ...db.workspaces[idx], ...req.body };
+    writeDB(db);
+    res.json({ message: 'Workspace updated successfully', workspace: db.workspaces[idx] });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
 
-    const workspace =
-       Workspace.findByIdAndUpdate(
-        req.params.id,
-        req.body,
-        { new: true }
-      );
+    // const workspace =
+    //    Workspace.findByIdAndUpdate(
+    //     req.params.id,
+    //     req.body,
+    //     { new: true }
+    //   );
 
-    if (!workspace)
-      return res.status(404).json({
-        message: 'Workspace not found'
-      });
+    // if (!workspace)
+    //   return res.status(404).json({
+    //     message: 'Workspace not found'
+    //   });
 
-    res.json({
-      message: 'Workspace updated successfully',
-      workspace
-    });
+    // res.json({
+    //   message: 'Workspace updated successfully',
+    //   workspace
+    // });
 
 // ── DELETE WORKSPACE ──────────────────────────────────────────────────────────
 // app.delete('/workspaces/:id', authenticateToken, async (req, res) => {
