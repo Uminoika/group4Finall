@@ -42,11 +42,20 @@ function generateId() {
 
 // ── JWT middleware ────────────────────────────────────────────────────────────
 function authenticateToken(req, res, next) {
-  // const token = req.headers['authorization'];
-  const token = process.env.JWT_SECRET;
-  if (!token) return res.status(401).json({ message: 'No token provided' });
-  jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret', (err, user) => {
-    if (err) return res.status(403).json({ message: 'Invalid token' });
+  const authHeader = req.headers['authorization'];
+
+  // Expect: "Bearer TOKEN"
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'No token provided' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ message: 'Invalid token' });
+    }
+
     req.user = user;
     next();
   });
