@@ -74,7 +74,7 @@
     const workspaceId = urlParams.get('id');
 
     async function loadWorkspace() {
-      const response = await fetch('https://sodv-web-dev-project-group4.onrender.com/workspaces');
+      const response = await fetch('https://group4sodvwebdevfinal.onrender.com/workspaces');
       const workspaces = await response.json();
       const workspace = workspaces.find(w => w.id === parseInt(workspaceId));
       if (workspace) {
@@ -103,7 +103,7 @@
       }
 
       try {
-        const response = await fetch(`https://sodv-web-dev-project-group4.onrender.com/workspaces/${workspaceId}`, {
+        const response = await fetch(`https://group4sodvwebdevfinal.onrender.com/workspaces/${workspaceId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', 'authorization': localStorage.getItem('token') },
           body: JSON.stringify({ type, seats, smoking, availability, term, price })
