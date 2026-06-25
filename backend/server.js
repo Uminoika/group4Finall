@@ -190,7 +190,8 @@ res.json({
 //   }
 // });
 
-const propertyVariable = await Property.findByIdAndDelete(req.params.id);
+//we murdering all awaits ig
+const propertyVariable = Property.findByIdAndDelete(req.params.id);
 
 if (!propertyVariable)
   return res.status(404).json({
