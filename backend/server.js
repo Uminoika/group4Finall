@@ -177,30 +177,30 @@ app.put('/properties/:id', authenticateToken, async (req, res) => {
 // });
 
 // ── DELETE PROPERTY ───────────────────────────────────────────────────────────
-// app.delete('/properties/:id', authenticateToken, async (req, res) => {
-//   try {
-//     const db = readDB();
-//     const idx = db.properties.findIndex(p => p._id === req.params.id);
-//     if (idx === -1) return res.status(404).json({ message: 'Property not found' });
-//     db.properties.splice(idx, 1);
-//     writeDB(db);
-//     res.json({ message: 'Property deleted successfully' });
-//   } catch (err) {
-//     res.status(500).json({ message: 'Server error', error: err.message });
-//   }
-// });
+app.delete('/properties/:id', authenticateToken, async (req, res) => {
+  try {
+    const db = readDB();
+    const idx = db.properties.findIndex(p => p._id === req.params.id);
+    if (idx === -1) return res.status(404).json({ message: 'Property not found' });
+    db.properties.splice(idx, 1);
+    writeDB(db);
+    res.json({ message: 'Property deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
 
 //we murdering all awaits ig
-const propertyVariable = Property.findByIdAndDelete(req.params.id);
+// const propertyVariable = Property.findByIdAndDelete(req.params.id);
 
-if (!propertyVariable)
-  return res.status(404).json({
-    message: 'Property not found'
-  });
+// if (!propertyVariable)
+//   return res.status(404).json({
+//     message: 'Property not found'
+//   });
 
-res.json({
-  message: 'Property deleted successfully'
-});
+// res.json({
+//   message: 'Property deleted successfully'
+// });
 
 // ── ADD WORKSPACE ─────────────────────────────────────────────────────────────
 app.post('/workspaces', authenticateToken, async (req, res) => {
