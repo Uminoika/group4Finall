@@ -49,7 +49,21 @@
 
     async function loadProperties() {
       try {
-        const response = await fetch(`https://group4sodvwebdevfinal.onrender.com/properties/${user.id}`);
+        // const response = await fetch(`https://group4sodvwebdevfinal.onrender.com/properties/${user.id}`);
+
+        const token = localStorage.getItem('token');
+
+        const response = await fetch(
+          `https://group4sodvwebdevfinal.onrender.com/properties/${user.id}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+
         const properties = await response.json();
         const list = document.getElementById('properties-list');
 
@@ -76,7 +90,18 @@
 
     async function deleteProperty(id) {
       if (!confirm('Are you sure you want to delete this property?')) return;
-      await fetch(`https://group4sodvwebdevfinal.onrender.com/properties/${id}`, { method: 'DELETE' });
+      // await fetch(`https://group4sodvwebdevfinal.onrender.com/properties/${id}`, { method: 'DELETE' });
+
+      await fetch(
+        `https://group4sodvwebdevfinal.onrender.com/properties/${id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
       loadProperties();
     }
 

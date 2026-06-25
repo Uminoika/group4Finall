@@ -41,6 +41,7 @@ function generateId() {
 // console.log('Using local JSON database (db.json)');
 
 // ── JWT middleware ────────────────────────────────────────────────────────────
+console.log("AUTH HEADER:", req.headers.authorization);
 function authenticateToken(req, res, next) {
   const token = req.headers['authorization'];
   // const token = process.env.JWT_SECRET
