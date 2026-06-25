@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Properties - WorkSpace Finder</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f4f4f4; }
+    nav { background: #2E4057; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+    nav h1 { color: white; font-size: 20px; }
+    nav div a { color: #cce0ff; text-decoration: none; margin-left: 15px; font-size: 14px; }
+    nav div a:hover { color: white; }
+    .container { max-width: 800px; margin: 30px auto; padding: 0 20px; }
+    h2 { color: #2E4057; margin-bottom: 20px; }
+    .btn { background: #2E4057; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; font-size: 14px; }
+    .btn:hover { background: #1a2a3a; }
+    .btn-red { background: #c0392b; }
+    .btn-red:hover { background: #a93226; }
+    .property-card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .property-card h3 { color: #2E4057; margin-bottom: 5px; }
+    .property-card p { color: #777; font-size: 14px; margin-bottom: 10px; }
+    .actions { display: flex; gap: 10px; margin-top: 10px; }
+    .workspace-item { background: #f9f9f9; padding: 10px; border-radius: 5px; margin-top: 8px; font-size: 14px; color: #555; }
+    .no-properties { text-align: center; color: #999; margin-top: 50px; }
+    footer { text-align: center; padding: 20px; background: #2E4057; color: #aaa; font-size: 13px; margin-top: 40px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>WorkSpace Finder</h1>
+    <div>
+      <a href="add-property.html">+ Add Property</a>
+      <a href="#" onclick="logout()">Logout</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h2>My Properties</h2>
+    <div id="properties-list"></div>
+  </div>
+
+  <footer>© 2026 WorkSpace Finder. All rights reserved.</footer>
+
+  <script>
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || user.role !== 'owner') {
+      window.location.href = 'login.html';
+    }
+
+    async function loadProperties() {
+      try {
+        const response = await fetch(`https://sodv-web-dev-project-group4.onrender.com/properties/${user.id}`);
+        const properties = await response.json();
+        const list = document.getElementById('properties-list');
+
+        if (properties.length === 0) {
+          list.innerHTML = '<p class="no-properties">You have no properties yet. <a href="add-property.html">Add one!</a></p>';
+          return;
+        }
+
+        list.innerHTML = properties.map(p => `
+          <div class="property-card">
+            <h3>${p.address} — ${p.neighborhood}</h3>
+            <p>${p.sqft} sqft · Garage: ${p.garage} · Public Transport: ${p.transport}</p>
+            <div class="actions">
+              <a href="add-workspace.html?propertyId=${p.id}" class="btn">+ Add Workspace</a>
+              <a href="edit-property.html?id=${p.id}" class="btn">Edit Property</a>
+              <button class="btn btn-red" onclick="deleteProperty(${p.id})">Delete Property</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Error loading properties:', err);
+      }
+    }
+
+    async function deleteProperty(id) {
+      if (!confirm('Are you sure you want to delete this property?')) return;
+      await fetch(`https://sodv-web-dev-project-group4.onrender.com/properties/${id}`, { method: 'DELETE' });
+      loadProperties();
+    }
+
+    function logout() {
+      localStorage.removeItem('user');
+      window.location.href = 'login.html';
+    }
+
+    loadProperties();
+  </script>
+</body>
+</html>
