@@ -41,15 +41,34 @@
 
   <footer>© 2026 WorkSpace Finder. All rights reserved.</footer>
 
-  <script>
+<script>
     const user = JSON.parse(localStorage.getItem('user'));
+    // 1. Adjusted to handle both user.id and user._id just in case
+    const userId = user ? (user._id || user.id) : null;
+
     if (!user || user.role !== 'owner') {
       window.location.href = 'login.html';
     }
 
     async function loadProperties() {
       try {
-        const response = await fetch(`https://group4sodvwebdevfinal.onrender.com/properties/${user.id}`);
+        // 2. Pass the authorization header token so the backend doesn't send a 401
+        const response = await fetch(`https://group4sodvwebdevfinal.onrender.com/properties/${userId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'authorization': localStorage.getItem('token') // Pulls the valid JWT token
+          }
+        });
+
+        // If the server returns an error code, log it instead of letting .map() crash
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Server error:', errorData.message);
+          document.getElementById('properties-list').innerHTML = `<p class="no-properties" style="color: red;">Error: ${errorData.message}</p>`;
+          return;
+        }
+
         const properties = await response.json();
         const list = document.getElementById('properties-list');
 
@@ -58,14 +77,15 @@
           return;
         }
 
+        // 3. Updated properties tracking references from p.id to p._id to match MongoDB
         list.innerHTML = properties.map(p => `
           <div class="property-card">
             <h3>${p.address} — ${p.neighborhood}</h3>
             <p>${p.sqft} sqft · Garage: ${p.garage} · Public Transport: ${p.transport}</p>
             <div class="actions">
-              <a href="add-workspace.html?propertyId=${p.id}" class="btn">+ Add Workspace</a>
-              <a href="edit-property.html?id=${p.id}" class="btn">Edit Property</a>
-              <button class="btn btn-red" onclick="deleteProperty(${p.id})">Delete Property</button>
+              <a href="add-workspace.html?propertyId=${p._id}" class="btn">+ Add Workspace</a>
+              <a href="edit-property.html?id=${p._id}" class="btn">Edit Property</a>
+              <button class="btn btn-red" onclick="deleteProperty('${p._id}')">Delete Property</button>
             </div>
           </div>
         `).join('');
@@ -76,12 +96,23 @@
 
     async function deleteProperty(id) {
       if (!confirm('Are you sure you want to delete this property?')) return;
-      await fetch(`https://group4sodvwebdevfinal.onrender.com/properties/${id}`, { method: 'DELETE' });
-      loadProperties();
+      
+      try {
+        await fetch(`https://group4sodvwebdevfinal.onrender.com/properties/${id}`, { 
+          method: 'DELETE',
+          headers: {
+            'authorization': localStorage.getItem('token') // Authenticate deletion requests
+          }
+        });
+        loadProperties();
+      } catch (err) {
+        console.error('Error deleting property:', err);
+      }
     }
 
     function logout() {
       localStorage.removeItem('user');
+      localStorage.removeItem('token'); // Keep local storage clean
       window.location.href = 'login.html';
     }
 
