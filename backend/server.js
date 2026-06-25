@@ -168,7 +168,8 @@ app.get('/properties/:ownerId', authenticateToken, async (req, res) => {
 //   }
 // });
 
-const property = await Property.findByIdAndUpdate(
+//rip another await
+const property = Property.findByIdAndUpdate(
   req.params.id,
   req.body,
   { new: true }
