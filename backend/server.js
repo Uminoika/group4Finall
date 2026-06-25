@@ -317,31 +317,31 @@ app.put('/workspaces/:id', authenticateToken, async (req, res) => {
     // });
 
 // ── DELETE WORKSPACE ──────────────────────────────────────────────────────────
-// app.delete('/workspaces/:id', authenticateToken, async (req, res) => {
-//   try {
-//     const db = readDB();
-//     const idx = db.workspaces.findIndex(w => w._id === req.params.id);
-//     if (idx === -1) return res.status(404).json({ message: 'Workspace not found' });
-//     db.workspaces.splice(idx, 1);
-//     writeDB(db);
-//     res.json({ message: 'Workspace deleted successfully' });
-//   } catch (err) {
-//     res.status(500).json({ message: 'Server error', error: err.message });
-//   }
-// });
-const workspaceAgain =
- Workspace.findByIdAndDelete(
-    req.params.id
-  );
-
-if (!workspaceAgain)
-  return res.status(404).json({
-    message: 'Workspace not found'
-  });
-
-res.json({
-  message: 'Workspace deleted successfully'
+app.delete('/workspaces/:id', authenticateToken, async (req, res) => {
+  try {
+    const db = readDB();
+    const idx = db.workspaces.findIndex(w => w._id === req.params.id);
+    if (idx === -1) return res.status(404).json({ message: 'Workspace not found' });
+    db.workspaces.splice(idx, 1);
+    writeDB(db);
+    res.json({ message: 'Workspace deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
 });
+// const workspaceAgain =
+//  Workspace.findByIdAndDelete(
+//     req.params.id
+//   );
+
+// if (!workspaceAgain)
+//   return res.status(404).json({
+//     message: 'Workspace not found'
+//   });
+
+// res.json({
+//   message: 'Workspace deleted successfully'
+// });
 
 // ── Start server ──────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
