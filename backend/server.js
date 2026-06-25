@@ -136,7 +136,7 @@ app.get('/properties/:ownerId', authenticateToken, async (req, res) => {
   try {
     // const db = readDB();
     // const properties = db.properties.filter(p => p.ownerId === req.params.ownerId);
-    const properties = await Property.find({
+    const properties = Property.find({
       ownerId: req.params.ownerId
     });
     res.json(properties);
